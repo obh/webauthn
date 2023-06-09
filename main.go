@@ -54,6 +54,7 @@ func registerOptions(resp http.ResponseWriter, req *http.Request) {
 		resp.Write([]byte("failed to find user"))
 	}
 	options, session, err := w.BeginRegistration(user)
+	store.StoreSession(UserId("101"), session)
 	if err != nil {
 		resp.Write([]byte("failed in registration"))
 	}

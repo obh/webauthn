@@ -17,10 +17,13 @@ type Datastore struct {
 func InitData() *Datastore {
 	u := &User{Id: "101", Username: "rohit", Displayname: "Rohit Sharma"}
 	users := make(map[UserId]User)
+
+	sessions := make(map[UserId]*webauthn.SessionData)
 	users[UserId(u.Id)] = *u
 
 	return &Datastore{
-		users: users,
+		users:    users,
+		sessions: sessions,
 	}
 }
 
