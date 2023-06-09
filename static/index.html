@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Button Example</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    $(document).ready(function() {
+      $('#myButton').click(function() {
+        if(!window.PublicKeyCredential) {
+          console.log("webauthn is not avaialble!")
+        }
+        $.ajax({
+          url: 'http://localhost:8080/options',
+          type: 'POST',
+          success: function(response) {
+            // Handle the response here
+            console.log(response);
+            response.publicKey.challenge = Uint8Array.from(response.publicKey.challenge)
+            response.publicKey.user.id = Uint8Array.from(response.publicKey.user.id)
+            register(response.publicKey);
+          },
+          error: function(xhr, status, error) {
+            // Handle the error here
+            console.log(error);
+          }
+        });
+      });
+      
+      function register(options){
+        console.log(options)
+        navigator.credentials.create({
+          publicKey: options
+        }).then(function(newCredential) {
+          // Process the newly created credential
+          console.log("new credential ->", newCredential);
+          const serializeable = {
+              authenticatorAttachment: newCredential.authenticatorAttachment,
+              id: newCredential.id,
+              rawId: bufferToBase64url(newCredential.rawId),
+              response: {
+                  attestationObject: bufferToBase64url(newCredential.response.attestationObject),
+                  clientDataJSON: bufferToBase64url(newCredential.response.clientDataJSON)
+              },
+              type: newCredential.type
+          };
+          let payload = JSON.stringify(serializeable)
+          console.log("new payload ->", payload);
+          $.ajax({
+            url: 'http://localhost:8080/register',
+            type: 'POST',
+            data: payload,
+            success: function(response) {
+              console.log(response);
+            },
+            error: function(xhr, status, error) {
+              console.log(error);
+            }
+          });
+        }).catch(function(error) {
+          console.log(error);
+        });
+      }
+    });
+
+    function bufferToBase64url (buffer) {
+        
+        // modified from https://github.com/github/webauthn-json/blob/main/src/webauthn-json/base64url.ts
+        const byteView = new Uint8Array(buffer);
+        let str = "";
+        for (const charCode of byteView) {
+            str += String.fromCharCode(charCode);
+        }
+        // Binary string to base64
+        const base64String = btoa(str);
+        // Base64 to base64url
+        // We assume that the base64url string is well-formed.
+        const base64urlString = base64String.replace(/\+/g, "-").replace(
+            /\//g,
+            "_",
+        ).replace(/=/g, "");
+        return base64urlString;
+    }
+    
+  </script>
+</head>
+<body>
+  <button id="myButton">Register</button>
+</body>
+</html>
