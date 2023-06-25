@@ -30,23 +30,25 @@ func InitData() *Datastore {
 func (d *Datastore) GetUser(userId UserId) (*User, error) {
 	u, ok := d.users[userId]
 	if !ok {
-		return nil, errors.New("user not found!")
+		return nil, errors.New("user not found")
 	}
 	return &u, nil
 }
 
 func (d *Datastore) StoreSession(userId UserId, session *webauthn.SessionData) {
+	fmt.Println("stored session challenge: ", session.Challenge)
 	d.sessions[userId] = session
 }
 
 func (d *Datastore) GetSession(userId UserId) (*webauthn.SessionData, error) {
 	s, ok := d.sessions[userId]
 	if !ok {
-		return nil, errors.New("session not found!")
+		return nil, errors.New("session not found")
 	}
 	return s, nil
 }
 
 func (d *Datastore) SaveUser(user User) {
+	d.users[UserId(user.Id)] = user
 	fmt.Println("storing User permanently: ", user)
 }

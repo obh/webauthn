@@ -4,7 +4,16 @@
   <title>Button Example</title>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script>
+    //from https://github.com/StrongKey/fido2/blob/73ab29299c0e2a73df24c99e8cf489e9500f1ad5/sampleapps/java/basic/server/src/main/webapp/js/base64url.js#L13
+    let chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+    // Use a lookup table to find the index.
+    let lookup = new Uint8Array(256);
+    for (let i = 0; i < chars.length; i++) {
+      lookup[chars.charCodeAt(i)] = i;
+    }
+
     $(document).ready(function() {
+      
       $('#myButton').click(function() {
         if(!window.PublicKeyCredential) {
           console.log("webauthn is not avaialble!")
@@ -15,8 +24,10 @@
           success: function(response) {
             // Handle the response here
             console.log(response);
-            response.publicKey.challenge = Uint8Array.from(response.publicKey.challenge)
-            response.publicKey.user.id = Uint8Array.from(response.publicKey.user.id)
+            let input = response;
+            input.publicKey.challenge = decode(input.publicKey.challenge)
+            input.publicKey.user.id = decode(input.publicKey.user.id)
+            // response.publicKey.user.id = Uint8Array.from(response.publicKey.user.id)
             register(response.publicKey);
           },
           error: function(xhr, status, error) {
@@ -51,6 +62,7 @@
             data: payload,
             success: function(response) {
               console.log(response);
+              alert("configured successfully!")
             },
             error: function(xhr, status, error) {
               console.log(error);
@@ -60,7 +72,43 @@
           console.log(error);
         });
       }
+
+      $('#myLogin').click(function() {
+        if(!window.PublicKeyCredential) {
+          console.log("webauthn is not avaialble!")
+        }
+        $.ajax({
+          url: 'http://localhost:8080/beginLogin',
+          type: 'POST',
+          success: function(response) {
+            // Handle the response here
+            console.log(response);
+            response.publicKey.allowCredentials[0].id = decode(response.publicKey.allowCredentials[0].id)
+            response.publicKey.challenge = decode(response.publicKey.challenge)
+            login(response.publicKey)
+            // let input = response;
+            // input.publicKey.challenge = decode(input.publicKey.challenge)
+            // input.publicKey.user.id = decode(input.publicKey.user.id)
+            // // response.publicKey.user.id = Uint8Array.from(response.publicKey.user.id)
+            // register(response.publicKey);
+          },
+          error: function(xhr, status, error) {
+            // Handle the error here
+            console.log(error);
+          }
+        });
+      });
+
     });
+
+    function login(options){
+        console.log(options)
+        navigator.credentials.get({
+          publicKey: options
+        }).then(function(assertion) {
+          console.log("assertion --> ", assertion)
+        })
+    }
 
     function bufferToBase64url (buffer) {
         
@@ -80,10 +128,29 @@
         ).replace(/=/g, "");
         return base64urlString;
     }
+
+    function decode(base64string) {
+      let bufferLength = base64string.length * 0.75,
+        len = base64string.length, i, p = 0,
+        encoded1, encoded2, encoded3, encoded4;
+      let bytes = new Uint8Array(bufferLength);
+      for (i = 0; i < len; i += 4) {
+        encoded1 = lookup[base64string.charCodeAt(i)];
+        encoded2 = lookup[base64string.charCodeAt(i + 1)];
+        encoded3 = lookup[base64string.charCodeAt(i + 2)];
+        encoded4 = lookup[base64string.charCodeAt(i + 3)];
+        bytes[p++] = (encoded1 << 2) | (encoded2 >> 4);
+        bytes[p++] = ((encoded2 & 15) << 4) | (encoded3 >> 2);
+        bytes[p++] = ((encoded3 & 3) << 6) | (encoded4 & 63);
+      }
+      return bytes.buffer
+	  };
     
   </script>
 </head>
 <body>
   <button id="myButton">Register</button>
+  </br>
+  <button id="myLogin">Login</button>
 </body>
 </html>
